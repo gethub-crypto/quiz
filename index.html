@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Quiz Game — отдельные экраны</title>
+<title>Quiz Game</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
@@ -48,6 +48,7 @@
   }
 
   button:hover { background: #475569; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .levelBtn {
     width: 70px;
@@ -64,14 +65,37 @@
   .super { background: gold; color: black; }
 
   #question { font-size: 24px; margin: 30px 0; }
-  .answer { display: block; width: 90%; max-width: 400px; margin: 12px auto; padding: 16px; font-size: 18px; }
+  .answer { 
+    display: block; 
+    width: 90%; 
+    max-width: 400px; 
+    margin: 12px auto; 
+    padding: 16px; 
+    font-size: 18px; 
+  }
 
-  #reward h2 { color: #fbbf24; }
+  #progressContainer {
+    width: 90%;
+    height: 12px;
+    background: #1e293b;
+    margin: 10px auto;
+    border-radius: 10px;
+    display: none;
+  }
+
+  #progressBar {
+    height: 100%;
+    width: 0%;
+    background: #22c55e;
+    border-radius: 10px;
+    transition: width .4s;
+  }
+
+  #reward h2 { color: #fbbf24; font-size: 32px; }
 </style>
 </head>
 <body>
 
-<!-- Общий топбар (показывается почти всегда) -->
 <div class="topbar">
   <div>❤️ <span id="lives">3</span></div>
   <div>🪙 <span id="coins">0</span></div>
@@ -88,9 +112,9 @@
 </div>
 
 <div id="gameScreen" class="screen">
-  <h2 id="levelTitle">Level 1</h2>
-  <div id="progressContainer" style="width:90%; height:10px; background:#1e293b; margin:10px auto; border-radius:5px; display:none;">
-    <div id="progressBar" style="height:100%; width:0%; background:#22c55e; border-radius:5px; transition:width 0.4s;"></div>
+  <h2 id="levelTitle">Уровень 1</h2>
+  <div id="progressContainer">
+    <div id="progressBar"></div>
   </div>
   <div id="progressText"></div>
   <div id="question"></div>
@@ -125,6 +149,7 @@ let currentQuestion = null;
 let lastBonusDate = null;
 
 const DAILY_BONUS = 80;
+const MAX_LIVES = 3;
 
 // Элементы
 const livesEl   = document.getElementById('lives');
@@ -159,7 +184,7 @@ function saveGame() {
 }
 
 function loadGame() {
-  lives = parseInt(localStorage.getItem('quiz_lives')) || 3;
+  lives = parseInt(localStorage.getItem('quiz_lives')) || MAX_LIVES;
   coins = parseInt(localStorage.getItem('quiz_coins')) || 0;
   const savedDate = localStorage.getItem('quiz_lastBonus');
   if (savedDate) lastBonusDate = new Date(savedDate);
@@ -171,7 +196,8 @@ function loadGame() {
 // ==================== КАРТА УРОВНЕЙ ====================
 function createLevelMap() {
   const map = document.getElementById('levelMap');
-  for (let i = 1; i <= 30; i++) {  // уменьшил для примера
+  map.innerHTML = '';
+  for (let i = 1; i <= 30; i++) {
     let btn = document.createElement('button');
     btn.className = 'levelBtn';
     if (i % 10 === 0) btn.classList.add('super');
@@ -218,7 +244,6 @@ function loadQuestion() {
     ansDiv.appendChild(btn);
   });
 
-  // Прогресс
   let prog = document.getElementById('progressContainer');
   if (total > 1) {
     prog.style.display = 'block';
@@ -227,6 +252,7 @@ function loadQuestion() {
     document.getElementById('progressText').textContent = `${questionIndex + 1} / ${total}`;
   } else {
     prog.style.display = 'none';
+    document.getElementById('progressText').textContent = '';
   }
 }
 
@@ -235,8 +261,21 @@ function checkAnswer(selected) {
     questionIndex++;
     loadQuestion();
   } else {
-    alert('Неправильно!');
-    // Здесь можно добавить потерю жизни и т.д.
+    alert('Неправильно! Потеряна 1 жизнь');
+
+    lives--;
+    livesEl.textContent = lives;
+    saveGame();
+
+    if (lives <= 0) {
+      alert('Жизни закончились! Игра окончена.');
+      lives = MAX_LIVES;
+      coins = Math.max(0, coins - 50); // штраф за проигрыш (можно убрать)
+      saveGame();
+      showScreen('map');
+      return;
+    }
+
     questionIndex++;
     loadQuestion();
   }
@@ -259,7 +298,7 @@ function showReward() {
 
 function doubleReward() {
   reward *= 2;
-  alert(`Награда удвоена: ${reward}`);
+  alert(`Награда удвоена: ${reward} (симуляция рекламы)`);
 }
 
 function nextLevel() {
@@ -283,7 +322,7 @@ function claimDailyBonus() {
   coinsEl.textContent = coins;
   lastBonusDate = now;
   saveGame();
-  alert(`+${DAILY_BONUS} монет! Приходи завтра!`);
+  alert(`+${DAILY_BONUS} монет! Приходи завтра! ✨`);
   updateDailyBonusUI();
 }
 
@@ -309,23 +348,59 @@ function updateDailyBonusUI() {
 
 // ==================== МАГАЗИН ====================
 function buyPowerUp(type) {
-  let cost = { remove2: 120, skip: 100, show: 200 }[type];
-  if (coins < cost) return alert('Недостаточно монет');
+  const costs = { remove2: 120, skip: 100, show: 200 };
+  const cost = costs[type];
+  if (!cost) return alert('Неизвестный power-up');
+
+  if (coins < cost) {
+    alert('Недостаточно монет!');
+    return;
+  }
 
   coins -= cost;
   coinsEl.textContent = coins;
   shopCoins.textContent = coins;
   saveGame();
 
-  alert(`Куплено: ${type} (симуляция)`);
-  // Здесь можно добавить реальную логику power-up
+  // Реальная логика power-up
+  if (type === 'remove2') {
+    if (currentQuestion && screens.game.classList.contains('active')) {
+      let buttons = document.querySelectorAll('#answers .answer');
+      let removed = 0;
+      buttons.forEach((btn, i) => {
+        if (i !== currentQuestion.correctIndex && removed < 2) {
+          btn.style.display = 'none';
+          removed++;
+        }
+      });
+      alert('Два неверных варианта убраны!');
+    } else {
+      alert('Можно использовать только во время вопроса');
+    }
+  }
+  else if (type === 'skip') {
+    if (screens.game.classList.contains('active')) {
+      questionIndex++;
+      loadQuestion();
+      alert('Вопрос пропущен');
+    } else {
+      alert('Можно использовать только во время вопроса');
+    }
+  }
+  else if (type === 'show') {
+    if (currentQuestion) {
+      alert('Правильный ответ: ' + currentQuestion.answers[currentQuestion.correctIndex]);
+    } else {
+      alert('Нет активного вопроса');
+    }
+  }
 }
 
 // ==================== ЗАПУСК ====================
 loadGame();
 createLevelMap();
 updateDailyBonusUI();
-setInterval(updateDailyBonusUI, 60000); // обновление таймера раз в минуту
+setInterval(updateDailyBonusUI, 60000);
 
 </script>
 </body>
