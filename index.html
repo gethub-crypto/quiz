@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Game — отдельные экраны</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<style>
+  body {
+    background: #0f172a;
+    font-family: Arial, sans-serif;
+    color: white;
+    text-align: center;
+    margin: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .screen {
+    display: none;
+    padding: 20px;
+    min-height: 80vh;
+    box-sizing: border-box;
+  }
+
+  .active { display: block; }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 20px;
+    font-size: 20px;
+    background: #1e293b;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  button {
+    background: #334155;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 8px;
+  }
+
+  button:hover { background: #475569; }
+
+  .levelBtn {
+    width: 70px;
+    height: 70px;
+    margin: 10px;
+    border-radius: 50%;
+    border: none;
+    font-size: 20px;
+    background: #1e293b;
+    color: white;
+    cursor: pointer;
+  }
+
+  .super { background: gold; color: black; }
+
+  #question { font-size: 24px; margin: 30px 0; }
+  .answer { display: block; width: 90%; max-width: 400px; margin: 12px auto; padding: 16px; font-size: 18px; }
+
+  #reward h2 { color: #fbbf24; }
+</style>
+</head>
+<body>
+
+<!-- Общий топбар (показывается почти всегда) -->
+<div class="topbar">
+  <div>❤️ <span id="lives">3</span></div>
+  <div>🪙 <span id="coins">0</span></div>
+</div>
+
+<!-- ЭКРАНЫ -->
+
+<div id="mapScreen" class="screen active">
+  <h1>Выберите уровень</h1>
+  <div id="levelMap" style="display:flex; flex-wrap:wrap; justify-content:center;"></div>
+  <button onclick="showScreen('shopScreen')">Магазин</button>
+  <button id="dailyBtn" onclick="claimDailyBonus()">Ежедневный бонус ✨</button>
+  <div id="bonusTimer" style="font-size:16px; color:#94a3b8; margin:15px;"></div>
+</div>
+
+<div id="gameScreen" class="screen">
+  <h2 id="levelTitle">Level 1</h2>
+  <div id="progressContainer" style="width:90%; height:10px; background:#1e293b; margin:10px auto; border-radius:5px; display:none;">
+    <div id="progressBar" style="height:100%; width:0%; background:#22c55e; border-radius:5px; transition:width 0.4s;"></div>
+  </div>
+  <div id="progressText"></div>
+  <div id="question"></div>
+  <div id="answers"></div>
+</div>
+
+<div id="rewardScreen" class="screen">
+  <h2>Уровень пройден!</h2>
+  <p>Получено <span id="rewardCoins">0</span> монет</p>
+  <button onclick="doubleReward()">x2 (симуляция рекламы)</button>
+  <button onclick="nextLevel()">Далее</button>
+</div>
+
+<div id="shopScreen" class="screen">
+  <h2>Магазин</h2>
+  <p>Монет: <span id="shopCoins">0</span></p>
+  <button onclick="buyPowerUp('remove2')">Убрать 2 неверных (120 🪙)</button>
+  <button onclick="buyPowerUp('skip')">Пропустить вопрос (100 🪙)</button>
+  <button onclick="buyPowerUp('show')">Показать ответ (200 🪙)</button>
+  <br><br>
+  <button onclick="showScreen('mapScreen')">Назад</button>
+</div>
+
+<script>
+// ==================== ОСНОВНЫЕ ПЕРЕМЕННЫЕ ====================
+let lives = 3;
+let coins = 0;
+let currentLevel = 1;
+let questionIndex = 0;
+let reward = 0;
+let currentQuestion = null;
+let lastBonusDate = null;
+
+const DAILY_BONUS = 80;
+
+// Элементы
+const livesEl   = document.getElementById('lives');
+const coinsEl   = document.getElementById('coins');
+const shopCoins = document.getElementById('shopCoins');
+
+// ==================== ЭКРАНЫ ====================
+const screens = {
+  map:    document.getElementById('mapScreen'),
+  game:   document.getElementById('gameScreen'),
+  reward: document.getElementById('rewardScreen'),
+  shop:   document.getElementById('shopScreen')
+};
+
+function showScreen(screenId) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[screenId].classList.add('active');
+
+  if (screenId === 'shop') {
+    shopCoins.textContent = coins;
+  }
+  if (screenId === 'map') {
+    updateDailyBonusUI();
+  }
+}
+
+// ==================== СОХРАНЕНИЕ / ЗАГРУЗКА ====================
+function saveGame() {
+  localStorage.setItem('quiz_lives', lives);
+  localStorage.setItem('quiz_coins', coins);
+  if (lastBonusDate) localStorage.setItem('quiz_lastBonus', lastBonusDate.toISOString());
+}
+
+function loadGame() {
+  lives = parseInt(localStorage.getItem('quiz_lives')) || 3;
+  coins = parseInt(localStorage.getItem('quiz_coins')) || 0;
+  const savedDate = localStorage.getItem('quiz_lastBonus');
+  if (savedDate) lastBonusDate = new Date(savedDate);
+
+  livesEl.textContent = lives;
+  coinsEl.textContent = coins;
+}
+
+// ==================== КАРТА УРОВНЕЙ ====================
+function createLevelMap() {
+  const map = document.getElementById('levelMap');
+  for (let i = 1; i <= 30; i++) {  // уменьшил для примера
+    let btn = document.createElement('button');
+    btn.className = 'levelBtn';
+    if (i % 10 === 0) btn.classList.add('super');
+    btn.textContent = i;
+    btn.onclick = () => startLevel(i);
+    map.appendChild(btn);
+  }
+}
+
+// ==================== ВОПРОСЫ ====================
+function generateQuestion() {
+  let a = Math.floor(Math.random() * 20) + 1;
+  let b = Math.floor(Math.random() * 20) + 1;
+  let correct = a + b;
+  let answers = [correct, correct + 2, correct - 2, correct + 5];
+  answers.sort(() => Math.random() - 0.5);
+
+  return {
+    question: `${a} + ${b} = ?`,
+    answers,
+    correctIndex: answers.indexOf(correct)
+  };
+}
+
+function loadQuestion() {
+  let total = (currentLevel % 10 === 0) ? 5 : 1;
+  if (questionIndex >= total) {
+    showReward();
+    return;
+  }
+
+  currentQuestion = generateQuestion();
+
+  document.getElementById('question').textContent = currentQuestion.question;
+
+  let ansDiv = document.getElementById('answers');
+  ansDiv.innerHTML = '';
+
+  currentQuestion.answers.forEach((text, i) => {
+    let btn = document.createElement('button');
+    btn.className = 'answer';
+    btn.textContent = text;
+    btn.onclick = () => checkAnswer(i);
+    ansDiv.appendChild(btn);
+  });
+
+  // Прогресс
+  let prog = document.getElementById('progressContainer');
+  if (total > 1) {
+    prog.style.display = 'block';
+    let percent = (questionIndex / total) * 100;
+    document.getElementById('progressBar').style.width = percent + '%';
+    document.getElementById('progressText').textContent = `${questionIndex + 1} / ${total}`;
+  } else {
+    prog.style.display = 'none';
+  }
+}
+
+function checkAnswer(selected) {
+  if (selected === currentQuestion.correctIndex) {
+    questionIndex++;
+    loadQuestion();
+  } else {
+    alert('Неправильно!');
+    // Здесь можно добавить потерю жизни и т.д.
+    questionIndex++;
+    loadQuestion();
+  }
+}
+
+// ==================== УРОВНИ И НАГРАДА ====================
+function startLevel(level) {
+  currentLevel = level;
+  questionIndex = 0;
+  document.getElementById('levelTitle').textContent = `Уровень ${level}`;
+  showScreen('game');
+  loadQuestion();
+}
+
+function showReward() {
+  reward = (currentLevel % 10 === 0) ? 120 : 20;
+  document.getElementById('rewardCoins').textContent = reward;
+  showScreen('reward');
+}
+
+function doubleReward() {
+  reward *= 2;
+  alert(`Награда удвоена: ${reward}`);
+}
+
+function nextLevel() {
+  coins += reward;
+  coinsEl.textContent = coins;
+  saveGame();
+  showScreen('map');
+}
+
+// ==================== ЕЖЕДНЕВНЫЙ БОНУС ====================
+function claimDailyBonus() {
+  const now = new Date();
+  const today = now.toDateString();
+
+  if (lastBonusDate && lastBonusDate.toDateString() === today) {
+    alert('Бонус уже получен сегодня!');
+    return;
+  }
+
+  coins += DAILY_BONUS;
+  coinsEl.textContent = coins;
+  lastBonusDate = now;
+  saveGame();
+  alert(`+${DAILY_BONUS} монет! Приходи завтра!`);
+  updateDailyBonusUI();
+}
+
+function updateDailyBonusUI() {
+  const btn = document.getElementById('dailyBtn');
+  const timer = document.getElementById('bonusTimer');
+
+  const now = new Date();
+  if (lastBonusDate && lastBonusDate.toDateString() === now.toDateString()) {
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0,0,0,0);
+    const left = tomorrow - now;
+    const h = Math.floor(left / 3600000);
+    const m = Math.floor((left % 3600000) / 60000);
+    timer.textContent = `Следующий через ${h}ч ${m}мин`;
+    btn.disabled = true;
+  } else {
+    timer.textContent = '';
+    btn.disabled = false;
+  }
+}
+
+// ==================== МАГАЗИН ====================
+function buyPowerUp(type) {
+  let cost = { remove2: 120, skip: 100, show: 200 }[type];
+  if (coins < cost) return alert('Недостаточно монет');
+
+  coins -= cost;
+  coinsEl.textContent = coins;
+  shopCoins.textContent = coins;
+  saveGame();
+
+  alert(`Куплено: ${type} (симуляция)`);
+  // Здесь можно добавить реальную логику power-up
+}
+
+// ==================== ЗАПУСК ====================
+loadGame();
+createLevelMap();
+updateDailyBonusUI();
+setInterval(updateDailyBonusUI, 60000); // обновление таймера раз в минуту
+
+</script>
+</body>
+  </html>
