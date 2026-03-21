@@ -92,6 +92,10 @@
   }
 
   #reward h2 { color: #fbbf24; font-size: 32px; }
+
+  .game-controls {
+    margin-top: 30px;
+  }
 </style>
 </head>
 <body>
@@ -119,6 +123,11 @@
   <div id="progressText"></div>
   <div id="question"></div>
   <div id="answers"></div>
+
+  <!-- Кнопка магазина на экране игры -->
+  <div class="game-controls">
+    <button onclick="showScreen('shopScreen')">Магазин</button>
+  </div>
 </div>
 
 <div id="rewardScreen" class="screen">
@@ -135,7 +144,8 @@
   <button onclick="buyPowerUp('skip')">Пропустить вопрос (100 🪙)</button>
   <button onclick="buyPowerUp('show')">Показать ответ (200 🪙)</button>
   <br><br>
-  <button onclick="showScreen('mapScreen')">Назад</button>
+  <button onclick="showScreen('mapScreen')">Назад на карту</button>
+  <button onclick="showScreen('gameScreen')">Вернуться к вопросу</button>
 </div>
 
 <script>
@@ -168,11 +178,18 @@ function showScreen(screenId) {
   Object.values(screens).forEach(s => s.classList.remove('active'));
   screens[screenId].classList.add('active');
 
+  // Обновляем монеты в магазине при каждом открытии
   if (screenId === 'shop') {
     shopCoins.textContent = coins;
   }
+
   if (screenId === 'map') {
     updateDailyBonusUI();
+  }
+
+  // Если возвращаемся к игре — перезагружаем текущий вопрос (чтобы power-up применились)
+  if (screenId === 'game' && currentQuestion) {
+    loadQuestion();  // перерисовываем вопрос с учётом скрытых кнопок и т.д.
   }
 }
 
@@ -262,7 +279,7 @@ function checkAnswer(selected) {
     questionIndex++;
     loadQuestion();
   } else {
-    // Неправильно → снимаем жизнь, но вопрос остаётся
+    // Неправильно → снимаем жизнь, вопрос остаётся
     alert('Неправильно! Потеряна 1 жизнь');
 
     lives--;
@@ -272,13 +289,13 @@ function checkAnswer(selected) {
     if (lives <= 0) {
       alert('Жизни закончились! Игра окончена.');
       lives = MAX_LIVES;
-      coins = Math.max(0, coins - 50); // штраф за проигрыш (можно убрать или изменить)
+      coins = Math.max(0, coins - 50);
       saveGame();
-      showScreen('map');
+      showScreen('map');  // ← явный возврат на карту
       return;
     }
 
-    // Вопрос остаётся тем же — игрок может попробовать снова
+    // Вопрос остаётся тем же
     alert('Попробуй ещё раз или купи помощь в магазине');
   }
 }
@@ -364,9 +381,9 @@ function buyPowerUp(type) {
   shopCoins.textContent = coins;
   saveGame();
 
-  // Реальная логика power-up (работает только на экране игры)
-  if (type === 'remove2') {
-    if (currentQuestion && screens.game.classList.contains('active')) {
+  // Применяем power-up, если мы на экране игры
+  if (screens.game.classList.contains('active') && currentQuestion) {
+    if (type === 'remove2') {
       let buttons = document.querySelectorAll('#answers .answer');
       let removed = 0;
       buttons.forEach((btn, i) => {
@@ -376,25 +393,17 @@ function buyPowerUp(type) {
         }
       });
       alert('Два неверных варианта убраны!');
-    } else {
-      alert('Можно использовать только во время вопроса');
     }
-  }
-  else if (type === 'skip') {
-    if (screens.game.classList.contains('active')) {
+    else if (type === 'skip') {
       questionIndex++;
       loadQuestion();
       alert('Вопрос пропущен');
-    } else {
-      alert('Можно использовать только во время вопроса');
     }
-  }
-  else if (type === 'show') {
-    if (currentQuestion) {
+    else if (type === 'show') {
       alert('Правильный ответ: ' + currentQuestion.answers[currentQuestion.correctIndex]);
-    } else {
-      alert('Нет активного вопроса');
     }
+  } else {
+    alert('Power-up можно использовать только во время вопроса');
   }
 }
 
