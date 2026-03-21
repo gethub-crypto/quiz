@@ -258,9 +258,11 @@ function loadQuestion() {
 
 function checkAnswer(selected) {
   if (selected === currentQuestion.correctIndex) {
+    // Правильно → идём дальше
     questionIndex++;
     loadQuestion();
   } else {
+    // Неправильно → снимаем жизнь, но вопрос остаётся
     alert('Неправильно! Потеряна 1 жизнь');
 
     lives--;
@@ -270,14 +272,14 @@ function checkAnswer(selected) {
     if (lives <= 0) {
       alert('Жизни закончились! Игра окончена.');
       lives = MAX_LIVES;
-      coins = Math.max(0, coins - 50); // штраф за проигрыш (можно убрать)
+      coins = Math.max(0, coins - 50); // штраф за проигрыш (можно убрать или изменить)
       saveGame();
       showScreen('map');
       return;
     }
 
-    questionIndex++;
-    loadQuestion();
+    // Вопрос остаётся тем же — игрок может попробовать снова
+    alert('Попробуй ещё раз или купи помощь в магазине');
   }
 }
 
@@ -362,7 +364,7 @@ function buyPowerUp(type) {
   shopCoins.textContent = coins;
   saveGame();
 
-  // Реальная логика power-up
+  // Реальная логика power-up (работает только на экране игры)
   if (type === 'remove2') {
     if (currentQuestion && screens.game.classList.contains('active')) {
       let buttons = document.querySelectorAll('#answers .answer');
