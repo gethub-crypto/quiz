@@ -2,55 +2,49 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Quiz Game</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Game PRO</title>
 
 <style>
-  body {
+body {
     background: #0f172a;
     font-family: Arial, sans-serif;
     color: white;
     text-align: center;
     margin: 0;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+}
 
-  .screen {
-    display: none;
-    padding: 20px;
-    min-height: 80vh;
-    box-sizing: border-box;
-  }
-
-  .active { display: block; }
-
-  .topbar {
+/* TOP BAR */
+.topbar {
     display: flex;
     justify-content: space-between;
     padding: 12px 20px;
     font-size: 20px;
-    background: #1e293b;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
+}
 
-  button {
-    background: #334155;
+#shopBtn {
+    background: #f59e0b;
     border: none;
-    padding: 10px 16px;
+    padding: 8px 14px;
     border-radius: 8px;
     color: white;
-    font-size: 16px;
     cursor: pointer;
-    margin: 8px;
-  }
+}
 
-  button:hover { background: #475569; }
-  button:disabled { opacity: 0.6; cursor: not-allowed; }
+/* SCREENS */
+.screen {
+    display: none;
+}
 
-  .levelBtn {
+/* MAP */
+#map {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 20px;
+}
+
+.levelBtn {
     width: 70px;
     height: 70px;
     margin: 10px;
@@ -60,359 +54,108 @@
     background: #1e293b;
     color: white;
     cursor: pointer;
-  }
+}
 
-  .super { background: gold; color: black; }
+.super {
+    background: gold;
+    color: black;
+}
 
-  #question { font-size: 24px; margin: 30px 0; }
-  .answer { 
-    display: block; 
-    width: 90%; 
-    max-width: 400px; 
-    margin: 12px auto; 
-    padding: 16px; 
-    font-size: 18px; 
-  }
+/* GAME */
+#game {
+    padding: 20px;
+}
 
-  #progressContainer {
+#question {
+    font-size: 22px;
+    margin: 20px 0;
+}
+
+.answer {
+    display: block;
+    width: 90%;
+    margin: 10px auto;
+    padding: 14px;
+    font-size: 18px;
+    border: none;
+    border-radius: 10px;
+    background: #334155;
+    color: white;
+    cursor: pointer;
+}
+
+.answer:hover {
+    background: #475569;
+}
+
+/* PROGRESS */
+#progressContainer {
     width: 90%;
     height: 12px;
     background: #1e293b;
     margin: 10px auto;
     border-radius: 10px;
     display: none;
-  }
+}
 
-  #progressBar {
-    height: 100%;
+#progressBar {
+    height: 12px;
     width: 0%;
     background: #22c55e;
     border-radius: 10px;
     transition: width .4s;
-  }
+}
 
-  #reward h2 { color: #fbbf24; font-size: 32px; }
+/* REWARD */
+#reward {
+    padding: 20px;
+}
 
-  .game-controls {
-    margin-top: 30px;
-  }
+button {
+    margin-top: 10px;
+}
 </style>
 </head>
+
 <body>
 
+<!-- TOP BAR -->
 <div class="topbar">
-  <div>❤️ <span id="lives">3</span></div>
-  <div>🪙 <span id="coins">0</span></div>
+    <div>❤️ <span id="lives">3</span></div>
+    <button id="shopBtn" onclick="openShop()">Shop</button>
+    <div>🪙 <span id="coins">0</span></div>
 </div>
 
-<!-- ЭКРАНЫ -->
+<!-- MAP SCREEN -->
+<div id="map" class="screen"></div>
 
-<div id="mapScreen" class="screen active">
-  <h1>Выберите уровень</h1>
-  <div id="levelMap" style="display:flex; flex-wrap:wrap; justify-content:center;"></div>
-  <button onclick="showScreen('shopScreen')">Магазин</button>
-  <button id="dailyBtn" onclick="claimDailyBonus()">Ежедневный бонус ✨</button>
-  <div id="bonusTimer" style="font-size:16px; color:#94a3b8; margin:15px;"></div>
+<!-- GAME SCREEN -->
+<div id="game" class="screen">
+
+    <div id="levelTitle"></div>
+
+    <div id="progressContainer">
+        <div id="progressBar"></div>
+    </div>
+
+    <div id="progressText"></div>
+
+    <div id="question"></div>
+    <div id="answers"></div>
+
 </div>
 
-<div id="gameScreen" class="screen">
-  <h2 id="levelTitle">Уровень 1</h2>
-  <div id="progressContainer">
-    <div id="progressBar"></div>
-  </div>
-  <div id="progressText"></div>
-  <div id="question"></div>
-  <div id="answers"></div>
+<!-- REWARD SCREEN -->
+<div id="reward" class="screen">
+    <h2>Level Complete</h2>
+    <p>You earned <span id="rewardCoins"></span> coins</p>
 
-  <!-- Кнопка магазина на экране игры -->
-  <div class="game-controls">
-    <button onclick="showScreen('shopScreen')">Магазин</button>
-  </div>
+    <button onclick="doubleReward()">x2 Reward (Ad)</button>
+    <button onclick="nextLevel()">Next Level</button>
 </div>
 
-<div id="rewardScreen" class="screen">
-  <h2>Уровень пройден!</h2>
-  <p>Получено <span id="rewardCoins">0</span> монет</p>
-  <button onclick="doubleReward()">x2 (симуляция рекламы)</button>
-  <button onclick="nextLevel()">Далее</button>
-</div>
+<!-- SCRIPT -->
+<script type="module" src="js/main.js"></script>
 
-<div id="shopScreen" class="screen">
-  <h2>Магазин</h2>
-  <p>Монет: <span id="shopCoins">0</span></p>
-  <button onclick="buyPowerUp('remove2')">Убрать 2 неверных (120 🪙)</button>
-  <button onclick="buyPowerUp('skip')">Пропустить вопрос (100 🪙)</button>
-  <button onclick="buyPowerUp('show')">Показать ответ (200 🪙)</button>
-  <br><br>
-  <button onclick="showScreen('mapScreen')">Назад на карту</button>
-  <button onclick="showScreen('gameScreen')">Вернуться к вопросу</button>
-</div>
-
-<script>
-// ==================== ОСНОВНЫЕ ПЕРЕМЕННЫЕ ====================
-let lives = 3;
-let coins = 0;
-let currentLevel = 1;
-let questionIndex = 0;
-let reward = 0;
-let currentQuestion = null;
-let lastBonusDate = null;
-
-const DAILY_BONUS = 80;
-const MAX_LIVES = 3;
-
-// Элементы
-const livesEl   = document.getElementById('lives');
-const coinsEl   = document.getElementById('coins');
-const shopCoins = document.getElementById('shopCoins');
-
-// ==================== ЭКРАНЫ ====================
-const screens = {
-  map:    document.getElementById('mapScreen'),
-  game:   document.getElementById('gameScreen'),
-  reward: document.getElementById('rewardScreen'),
-  shop:   document.getElementById('shopScreen')
-};
-
-function showScreen(screenId) {
-  Object.values(screens).forEach(s => s.classList.remove('active'));
-  screens[screenId].classList.add('active');
-
-  // Обновляем монеты в магазине при каждом открытии
-  if (screenId === 'shop') {
-    shopCoins.textContent = coins;
-  }
-
-  if (screenId === 'map') {
-    updateDailyBonusUI();
-  }
-
-  // Если возвращаемся к игре — перезагружаем текущий вопрос (чтобы power-up применились)
-  if (screenId === 'game' && currentQuestion) {
-    loadQuestion();  // перерисовываем вопрос с учётом скрытых кнопок и т.д.
-  }
-}
-
-// ==================== СОХРАНЕНИЕ / ЗАГРУЗКА ====================
-function saveGame() {
-  localStorage.setItem('quiz_lives', lives);
-  localStorage.setItem('quiz_coins', coins);
-  if (lastBonusDate) localStorage.setItem('quiz_lastBonus', lastBonusDate.toISOString());
-}
-
-function loadGame() {
-  lives = parseInt(localStorage.getItem('quiz_lives')) || MAX_LIVES;
-  coins = parseInt(localStorage.getItem('quiz_coins')) || 0;
-  const savedDate = localStorage.getItem('quiz_lastBonus');
-  if (savedDate) lastBonusDate = new Date(savedDate);
-
-  livesEl.textContent = lives;
-  coinsEl.textContent = coins;
-}
-
-// ==================== КАРТА УРОВНЕЙ ====================
-function createLevelMap() {
-  const map = document.getElementById('levelMap');
-  map.innerHTML = '';
-  for (let i = 1; i <= 30; i++) {
-    let btn = document.createElement('button');
-    btn.className = 'levelBtn';
-    if (i % 10 === 0) btn.classList.add('super');
-    btn.textContent = i;
-    btn.onclick = () => startLevel(i);
-    map.appendChild(btn);
-  }
-}
-
-// ==================== ВОПРОСЫ ====================
-function generateQuestion() {
-  let a = Math.floor(Math.random() * 20) + 1;
-  let b = Math.floor(Math.random() * 20) + 1;
-  let correct = a + b;
-  let answers = [correct, correct + 2, correct - 2, correct + 5];
-  answers.sort(() => Math.random() - 0.5);
-
-  return {
-    question: `${a} + ${b} = ?`,
-    answers,
-    correctIndex: answers.indexOf(correct)
-  };
-}
-
-function loadQuestion() {
-  let total = (currentLevel % 10 === 0) ? 5 : 1;
-  if (questionIndex >= total) {
-    showReward();
-    return;
-  }
-
-  currentQuestion = generateQuestion();
-
-  document.getElementById('question').textContent = currentQuestion.question;
-
-  let ansDiv = document.getElementById('answers');
-  ansDiv.innerHTML = '';
-
-  currentQuestion.answers.forEach((text, i) => {
-    let btn = document.createElement('button');
-    btn.className = 'answer';
-    btn.textContent = text;
-    btn.onclick = () => checkAnswer(i);
-    ansDiv.appendChild(btn);
-  });
-
-  let prog = document.getElementById('progressContainer');
-  if (total > 1) {
-    prog.style.display = 'block';
-    let percent = (questionIndex / total) * 100;
-    document.getElementById('progressBar').style.width = percent + '%';
-    document.getElementById('progressText').textContent = `${questionIndex + 1} / ${total}`;
-  } else {
-    prog.style.display = 'none';
-    document.getElementById('progressText').textContent = '';
-  }
-}
-
-function checkAnswer(selected) {
-  if (selected === currentQuestion.correctIndex) {
-    // Правильно → идём дальше
-    questionIndex++;
-    loadQuestion();
-  } else {
-    // Неправильно → снимаем жизнь, вопрос остаётся
-    alert('Неправильно! Потеряна 1 жизнь');
-
-    lives--;
-    livesEl.textContent = lives;
-    saveGame();
-
-    if (lives <= 0) {
-      alert('Жизни закончились! Игра окончена.');
-      lives = MAX_LIVES;
-      coins = Math.max(0, coins - 50);
-      saveGame();
-      showScreen('map');  // ← явный возврат на карту
-      return;
-    }
-
-    // Вопрос остаётся тем же
-    alert('Попробуй ещё раз или купи помощь в магазине');
-  }
-}
-
-// ==================== УРОВНИ И НАГРАДА ====================
-function startLevel(level) {
-  currentLevel = level;
-  questionIndex = 0;
-  document.getElementById('levelTitle').textContent = `Уровень ${level}`;
-  showScreen('game');
-  loadQuestion();
-}
-
-function showReward() {
-  reward = (currentLevel % 10 === 0) ? 120 : 20;
-  document.getElementById('rewardCoins').textContent = reward;
-  showScreen('reward');
-}
-
-function doubleReward() {
-  reward *= 2;
-  alert(`Награда удвоена: ${reward} (симуляция рекламы)`);
-}
-
-function nextLevel() {
-  coins += reward;
-  coinsEl.textContent = coins;
-  saveGame();
-  showScreen('map');
-}
-
-// ==================== ЕЖЕДНЕВНЫЙ БОНУС ====================
-function claimDailyBonus() {
-  const now = new Date();
-  const today = now.toDateString();
-
-  if (lastBonusDate && lastBonusDate.toDateString() === today) {
-    alert('Бонус уже получен сегодня!');
-    return;
-  }
-
-  coins += DAILY_BONUS;
-  coinsEl.textContent = coins;
-  lastBonusDate = now;
-  saveGame();
-  alert(`+${DAILY_BONUS} монет! Приходи завтра! ✨`);
-  updateDailyBonusUI();
-}
-
-function updateDailyBonusUI() {
-  const btn = document.getElementById('dailyBtn');
-  const timer = document.getElementById('bonusTimer');
-
-  const now = new Date();
-  if (lastBonusDate && lastBonusDate.toDateString() === now.toDateString()) {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0,0,0,0);
-    const left = tomorrow - now;
-    const h = Math.floor(left / 3600000);
-    const m = Math.floor((left % 3600000) / 60000);
-    timer.textContent = `Следующий через ${h}ч ${m}мин`;
-    btn.disabled = true;
-  } else {
-    timer.textContent = '';
-    btn.disabled = false;
-  }
-}
-
-// ==================== МАГАЗИН ====================
-function buyPowerUp(type) {
-  const costs = { remove2: 120, skip: 100, show: 200 };
-  const cost = costs[type];
-  if (!cost) return alert('Неизвестный power-up');
-
-  if (coins < cost) {
-    alert('Недостаточно монет!');
-    return;
-  }
-
-  coins -= cost;
-  coinsEl.textContent = coins;
-  shopCoins.textContent = coins;
-  saveGame();
-
-  // Применяем power-up, если мы на экране игры
-  if (screens.game.classList.contains('active') && currentQuestion) {
-    if (type === 'remove2') {
-      let buttons = document.querySelectorAll('#answers .answer');
-      let removed = 0;
-      buttons.forEach((btn, i) => {
-        if (i !== currentQuestion.correctIndex && removed < 2) {
-          btn.style.display = 'none';
-          removed++;
-        }
-      });
-      alert('Два неверных варианта убраны!');
-    }
-    else if (type === 'skip') {
-      questionIndex++;
-      loadQuestion();
-      alert('Вопрос пропущен');
-    }
-    else if (type === 'show') {
-      alert('Правильный ответ: ' + currentQuestion.answers[currentQuestion.correctIndex]);
-    }
-  } else {
-    alert('Power-up можно использовать только во время вопроса');
-  }
-}
-
-// ==================== ЗАПУСК ====================
-loadGame();
-createLevelMap();
-updateDailyBonusUI();
-setInterval(updateDailyBonusUI, 60000);
-
-</script>
 </body>
-  </html>
+</html>
